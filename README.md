@@ -1,5 +1,16 @@
 # ESP32 Bit Pirate CUSTOME BOARD 
 
+BOARD =  ESP32-S3 DevKitC-1 N16R8
+
+DISPLAY = SD1306 I2C OLED 0,96' 128x64
+
+TOUCH = TTP223 X3
+
+
+https://geo-tp.github.io/ESP32-Bit-Pirate/#start
+
+
+ 
 [![Logo banner of the ESP32 Bit Pirate firmware](images/logo_protocols_banner_small.png)](https://geo-tp.github.io/ESP32-Bit-Pirate/)
 
 
