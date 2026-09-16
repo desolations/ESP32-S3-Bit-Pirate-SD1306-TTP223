@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ESP32 Bit Pirate — Board Custom ZHILLY-BP</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;max-width:920px;margin:0 auto;padding:24px;color:#222;line-height:1.55}
+  h1{color:#1a5276;border-bottom:3px solid #1a5276;padding-bottom:8px}
+  h2{color:#148f77;margin-top:34px;border-bottom:1px solid #bbb;padding-bottom:4px}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+  th{background:#1a5276;color:#fff;padding:8px;text-align:left}
+  td{border:1px solid #999;padding:6px 8px;vertical-align:top}
+  tr:nth-child(even){background:#eef4f8}
+  code{background:#eee;padding:2px 5px;border-radius:3px;font-family:Consolas,monospace}
+  pre{background:#2d2d2d;color:#f1f1f1;padding:14px;border-radius:6px;overflow-x:auto;font-family:Consolas,monospace;font-size:13px}
+  .warn{background:#fdecea;border-left:4px solid #c0392b;padding:10px 14px;margin:12px 0}
+  .ok{background:#eafaf1;border-left:4px solid #27ae60;padding:10px 14px;margin:12px 0}
+  .pin{display:inline-block;background:#1a5276;color:#fff;padding:1px 9px;border-radius:10px;font-family:Consolas,monospace;font-size:13px}
+  .mod{border:2px solid #1a5276;border-radius:8px;padding:10px 14px;margin:8px;display:inline-block;background:#f4f9fc}
+  .fleche{color:#c0392b;font-weight:bold}
+  @media print{body{padding:0}}
+</style>
+</head>
+<body>
+
+<h1>ESP32 Bit Pirate — Board Custom « ZHILLY-BP »</h1>
+<p><b>Documentation de référence v1.0</b> — contribution francophone pour la communauté maker</p>
+
+<h2>1. Présentation</h2>
+<p>Board custom pour le firmware <b>ESP32 Bit Pirate v1.7</b>, fonctionnant sur un <b>ESP32-S3 DevKitC-1 N16R8</b> avec écran <b>OLED SSD1306 128×64</b> (I2C) et <b>3 capteurs tactiles TTP223</b>. Sélection du mode de connexion (WIFI / HOTSPOT / SERIAL) via interface physique, à la manière du T-Embed.</p>
+<div class="ok"><b>Contribution originale :</b> vue SSD1306 (<code>Ssd1306DeviceView</code>) + input 3 boutons actifs hauts (<code>CustomInput</code>) intégrées au framework du board custom.</div>
+
+<h2>2. Matériel requis</h2>
+<table>
+<tr><th>Élément</th><th>Référence</th><th>Qté</th><th>Prix</th></tr>
+<tr><td>MCU</td><td>ESP32-S3 DevKitC-1 N16R8 (16 Mo flash, 8 Mo PSRAM octale)</td><td>1</td><td>~10 €</td></tr>
+<tr><td>Écran</td><td>SSD1306 OLED 0,96" 128×64, I2C, adresse 0x3C</td><td>1</td><td>~4 €</td></tr>
+<tr><td>Boutons</td><td>TTP223 tactiles capacitifs (momentanés, actifs HAUT)</td><td>3</td><td>~2 €</td></tr>
+</table>
+<div class="warn"><b>Notes :</b> pads A/B des TTP223 non soudés (mode momentané actif haut). Certains OLED sont à 0x3D.</div>
+
+<h2>3. Schéma de câblage</h2>
+<p>
+<span class="mod"><b>OLED SSD1306</b><br>VCC · GND · SDA · SCL</span>
+<span class="mod"><b>TTP223 ×3</b><br>▼ (GPIO 10) · ▲ (GPIO 11) · OK (GPIO 12)</span>
+<span class="mod"><b>ESP32-S3</b><br>DevKitC-1 N16R8<br>USB natif : flash + serial</span>
+</p>
+<table>
+<tr><th>#</th><th>Composant</th><th>Broche composant</th><th>GPIO ESP32-S3</th><th>Type de signal</th><th>Partagé avec</th></tr>
+<tr><td>1</td><td>OLED SSD1306</td><td>VCC</td><td><span class="pin">3.3V</span></td><td>alimentation</td><td>TTP223 (VCC)</td></tr>
+<tr><td>2</td><td>OLED SSD1306</td><td>GND</td><td><span class="pin">GND</span></td><td>masse commune</td><td>tous les GND</td></tr>
+<tr><td>3</td><td>OLED SSD1306</td><td>SDA</td><td><span class="pin">GPIO 8</span></td><td>I2C data</td><td>bus I2C outils (pinmap T-Embed CC1101)</td></tr>
+<tr><td>4</td><td>OLED SSD1306</td><td>SCL</td><td><span class="pin">GPIO 18</span></td><td>I2C clock</td><td>bus I2C outils (pinmap T-Embed CC1101)</td></tr>
+<tr><td>5</td><td>TTP223 « ▼ »</td><td>VCC / GND</td><td><span class="pin">3.3V / GND</span></td><td>alimentation</td><td>—</td></tr>
+<tr><td>6</td><td>TTP223 « ▼ »</td><td>I/O (SIG)</td><td><span class="pin">GPIO 10</span></td><td>entrée digitale, active HAUTE</td><td>—</td></tr>
+<tr><td>7</td><td>TTP223 « ▲ »</td><td>I/O (SIG)</td><td><span class="pin">GPIO 11</span></td><td>entrée digitale, active HAUTE</td><td>—</td></tr>
+<tr><td>8</td><td>TTP223 « OK »</td><td>I/O (SIG)</td><td><span class="pin">GPIO 12</span></td><td>entrée digitale, active HAUTE</td><td>—</td></tr>
+</table>
+<table>
+<tr><th>Bouton</th><th>GPIO</th><th>Action dans le firmware</th><th>Code touche</th></tr>
+<tr><td>▲</td><td>11</td><td>option précédente (cycle)</td><td><code>KEY_ARROW_LEFT</code></td></tr>
+<tr><td>▼</td><td>10</td><td>option suivante (cycle)</td><td><code>KEY_ARROW_RIGHT</code></td></tr>
+<tr><td>OK</td><td>12</td><td>valider la sélection</td><td><code>KEY_OK</code></td></tr>
+</table>
+<div class="warn"><b>Règles critiques :</b> masses toutes communes · 3.3V uniquement (jamais 5V) · flash et moniteur via le port USB <b>natif</b> du S3 (pas le port UART), USB CDC On Boot activé.</div>
+
+<h2>4. Mapping GPIO complet</h2>
+<table>
+<tr><th>GPIO</th><th>Fonction</th><th>Réservé par</th></tr>
+<tr><td><b>8</b></td><td>I2C SDA (OLED + bus outils)</td><td>écran + protocole I2C</td></tr>
+<tr><td><b>10 / 11 / 12</b></td><td>boutons ▼ ▲ OK (TTP223)</td><td>interface</td></tr>
+<tr><td><b>18</b></td><td>I2C SCL (OLED + bus outils)</td><td>écran + protocole I2C</td></tr>
+<tr><td>1 / 2</td><td>IR TX / RX (option)</td><td>protocole infrarouge</td></tr>
+<tr><td>3</td><td>LoRa RST (option)</td><td>module radio</td></tr>
+<tr><td>4–7</td><td>bus SPI outils (CS/CLK/MISO/MOSI)</td><td>CC1101 / MCP2515 / LoRa / nRF24</td></tr>
+<tr><td>13 / 14</td><td>SD CS / SD CLK (option)</td><td>carte SD</td></tr>
+<tr><td>15 / 16</td><td>UART RX / TX (option)</td><td>protocole série</td></tr>
+<tr><td>17</td><td>OneWire (option)</td><td>protocole 1-wire</td></tr>
+<tr><td>39 / 40</td><td>SD MISO / MOSI (option)</td><td>carte SD</td></tr>
+<tr><td>41 / 42</td><td>I2S (option)</td><td>audio</td></tr>
+<tr><td>48</td><td>LED RGB du DevKit</td><td>statut</td></tr>
+<tr><td>19 / 20</td><td colspan="2"><b>INTERDIT</b> — USB natif</td></tr>
+<tr><td>26–37</td><td colspan="2"><b>INTERDIT — bus PSRAM octale, risque de brick</b></td></tr>
+<tr><td>43 / 44</td><td colspan="2"><b>INTERDIT</b> — UART0 debug</td></tr>
+<tr><td>45 / 46</td><td colspan="2">strapping — à éviter</td></tr>
+</table>
+
+<h2>5. Build et flash</h2>
+<p><b>Prérequis :</b> PlatformIO avec Python 3.10 à 3.13 (<b>pas 3.14</b> — incompatibilité connue).</p>
+<pre>pio run -e zhilly-bp                        # build
+pio run -e zhilly-bp -t upload --upload-port COMx   # flash
+pio device monitor --port COMx             # moniteur 115200</pre>
+<div class="warn"><b>Pièges documentés :</b><br>
+· <code>ImportError littlefs</code> → penv corrompu : supprimer <code>%USERPROFILE%\.platformio\penv</code> puis relancer<br>
+· Carte bloquée en <code>waiting for download</code> → maintenir BOOT pendant le lancement du flash<br>
+· Toujours lancer PlatformIO depuis le bon Python (3.12) si plusieurs versions cohabitent</div>
+
+<h2>6. Structure des fichiers ajoutés / modifiés</h2>
+<table>
+<tr><th>Fichier</th><th>Nature</th><th>Rôle</th></tr>
+<tr><td><code>src/Boards/Common/Views/Ssd1306DeviceView.h/.cpp</code></td><td><b>NOUVEAU</b></td><td>Vue OLED complète (toutes les méthodes IDeviceView)</td></tr>
+<tr><td><code>src/Boards/Custom/CustomInput.h/.cpp</code></td><td>MODIFIÉ</td><td>3 boutons TTP223 actifs hauts, anti double-déclenchement 120 ms</td></tr>
+<tr><td><code>src/Boards/Custom/CustomBoard.h/.cpp</code></td><td>MODIFIÉ</td><td>Support du driver SSD1306 (<code>#elif CUSTOM_DISPLAY_DRIVER_SSD1306</code>)</td></tr>
+<tr><td><code>src/Boards/Custom/CustomBoardConfig.h</code></td><td>MODIFIÉ</td><td>Macros pins I2C OLED + 3 boutons indépendants</td></tr>
+<tr><td><code>src/Configurators/TerminalTypeConfigurator.cpp</code></td><td>MODIFIÉ</td><td><b>Retrait de DEVICE_CUSTOM de la liste headless — indispensable</b> (voir §7)</td></tr>
+<tr><td><code>platformio.ini</code></td><td>MODIFIÉ</td><td>Environnement <code>[env:zhilly-bp]</code> complet</td></tr>
+</table>
+
+<h2>7. Le correctif indispensable (piège du framework)</h2>
+<p>Dans <code>TerminalTypeConfigurator.cpp</code>, le firmware officiel route <code>DEVICE_CUSTOM</code> vers <code>selectHeadless()</code> : sélection automatique après 3 s, seul OK écouté. <b>Retirer <code>DEVICE_CUSTOM</code> du <code>#if</code></b> pour obtenir le sélecteur interactif ▼▲OK :</p>
+<pre>// AVANT :
+#if defined(DEVICE_M5STAMPS3) || defined(DEVICE_S3DEVKIT) || defined(DEVICE_CUSTOM)
+    selected = selector.selectHeadless();
+
+// APRÈS (le correctif) :
+#if defined(DEVICE_M5STAMPS3) || defined(DEVICE_S3DEVKIT)
+    selected = selector.selectHeadless();</pre>
+
+<h2>8. Configuration de l'environnement (extrait platformio.ini)</h2>
+<pre>[env:zhilly-bp]
+board = esp32-s3-devkitc1-n16r8
+board_build.partitions = partitions/app4M_spiffs_12M_16MB.csv
+lib_deps =
+  thingpulse/ESP8266 and ESP32 OLED driver for SSD1306 displays@^4.6.1
+  LovyanGFX=https://github.com/lovyan03/LovyanGFX
+  crankyoldgit/IRremoteESP8266 @ ^2.9.0
+  ${env.lib_deps}
+build_flags =
+  -D BOARD_HAS_PSRAM=1
+  ${env.build_flags}
+  -DDEVICE_CUSTOM
+  -DPROTECTED_PINS="\"8, 10, 11, 12, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 43, 44, 45, 46\""
+  -DCUSTOM_INPUT_DOWN_PIN=10
+  -DCUSTOM_INPUT_UP_PIN=11
+  -DCUSTOM_INPUT_OK_PIN=12
+  -DCUSTOM_INPUT_BUTTON_ACTIVE_LOW=0
+  -DCUSTOM_INPUT_BUTTON_PULLUP=0
+  -DCUSTOM_DISPLAY_DRIVER_SSD1306
+  -DCUSTOM_DISPLAY_I2C_SDA=8
+  -DCUSTOM_DISPLAY_I2C_SCL=18
+  -DCUSTOM_DISPLAY_I2C_ADDRESS=0x3C</pre>
+
+<h2>9. Utilisation</h2>
+<ol>
+<li>Boot → logo « BIT PIRATE » (~1 s)</li>
+<li>Sélecteur : <b>▲ ▼</b> font défiler WIFI / HOTSPOT / SERIAL — <b>OK</b> valide (aucun timeout)</li>
+<li><b>Première config WiFi :</b> choisir HOTSPOT → rejoindre l'AP depuis un téléphone → http://192.168.4.1 → saisir les identifiants → reboot → mode WIFI → IP affichée → interface web sur téléphone</li>
+<li><b>Mode Serial :</b> terminal PC (115200), taper une touche puis <code>help</code> pour la liste des commandes</li>
+</ol>
+
+<h2>10. Dépannage (pièges vécus)</h2>
+<table>
+<tr><th>Symptôme</th><th>Cause</th><th>Solution</th></tr>
+<tr><td>Écran noir</td><td>SDA/SCL inversés ou adresse</td><td>Vérifier 8=SDA / 18=SCL, essayer 0x3D</td></tr>
+<tr><td>Boutons inertes</td><td>TTP223 mal câblé (I/O ≠ VCC) ou pads A/B soudés</td><td>Vérifier broche SIG + pads vierges</td></tr>
+<tr><td>Sélection automatique après 3 s</td><td><code>DEVICE_CUSTOM</code> dans le <code>#if</code> headless</td><td>Appliquer le correctif §7</td></tr>
+<tr><td>« Seul OK marche »</td><td>Idem — headless n'écoute que OK</td><td>Idem</td></tr>
+<tr><td>Choix WIFI → retombe en Serial</td><td>Identifiants WiFi absents</td><td>Configurer via HOTSPOT (§9.3)</td></tr>
+<tr><td>Rien sur le moniteur série</td><td>Mauvais port USB (UART au lieu de natif)</td><td>Brancher le port USB natif du S3</td></tr>
+<tr><td><code>littlefs</code> ImportError</td><td>penv Python corrompu</td><td>Purger <code>~/.platformio/penv</code></td></tr>
+<tr><td>Python 3.14 refusé</td><td>Incompatibilité PlatformIO</td><td>Installer Python 3.12 à côté</td></tr>
+</table>
+
+<h2>11. Crédits et licence</h2>
+<p>Firmware : <b>ESP32 Bit Pirate v1.7</b> (projet open-source — voir LICENSE du dépôt).<br>
+Board custom <b>zhilly-bp</b> : vue SSD1306 + input TTP223 — contribution libre pour la communauté maker francophone.</p>
+
+<p style="margin-top:30px;color:#888;font-size:12px">Document généré en HTML autonome — export PDF : Ctrl+P depuis le navigateur.</p>
+
+</body>
+</html>
