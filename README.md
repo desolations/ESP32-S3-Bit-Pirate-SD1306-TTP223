@@ -1,4 +1,4 @@
-# ESP32 Bit Pirate
+# ESP32 Bit Pirate CUSTOME BOARD 
 
 [![Logo banner of the ESP32 Bit Pirate firmware](images/logo_protocols_banner_small.png)](https://geo-tp.github.io/ESP32-Bit-Pirate/)
 
